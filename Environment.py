@@ -1,7 +1,4 @@
 class Environment(object):
-    _rule = None
-    _agents = []
-
 
     def __init__(self, rule, visualize=False):
         super().__init__()

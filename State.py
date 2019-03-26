@@ -26,8 +26,6 @@ class JPState:
         self.mountainIndicatorId = 0
 
 
-
-
     def resetGame(self):
         self.wind = 0 # E - S - W - N
         self.roundCount = 0
