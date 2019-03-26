@@ -34,8 +34,6 @@ class JPState:
         self._openTiles =  [[] for i in range(self._agentSize)]  # 副露 tiles opened
         self._riichii = {i:-1 for i in range(self._agentSize)}
 
-<<<<<<< HEAD
-=======
         for i in range(self._agentSize):
             self._handTiles[i], self._tileStack = self._tileStack[:13], self._tileStack[13:]
 
@@ -52,7 +50,6 @@ class JPState:
         '''
         pass
 
->>>>>>> 8be77d6f984c5a3cc56faa39914ab94da221365c
     def resetGame(self):
         self._wind = 0 # E - S - W - N
         self._roundCount = 0
