@@ -3,35 +3,57 @@ from Rule import JPMahjongRule
 import constants as const
 
 class JPState:
-    def __init__(self, agentSize: int, rule: JPMahjongRule, seed=2019):
-        self.agentSize = agentSize
-        self.seed = seed
-        self.rule = rule
-        random.seed(seed)
+
+    @property
+    def tileStack(self):
+        return self._tileStack
+
+    @tileStack.setter
+    def tileStack(self, value):
+        self._tileStack = value
+
+    def shuffleTileStack(self):
+        random.shuffle(self._tileStack)
+
+    def __init__(self, agentSize: int, rule: JPMahjongRule):
+        self._agentSize = agentSize
+        self._rule = rule
+
+        self.id2tile = [(tile, i) for tile, value in self.rule.getTileTypes.items() for i in range(value)]
+        self.tile2id = {tile: self.id2tile.index(tile) for tile in self.id2tile}
+        
 
     def resetTurn(self):
-        self.handTiles =  [[] for i in range(self.agentSize)]  # 手牌 tiles in hand
-        self.riverTiles = [[] for i in range(self.agentSize)]  # 牌河 tiles in river
-        self.openTiles =  [[] for i in range(self.agentSize)]  # 副露
-        self.montainTiles = [] 
-        self.tilesSeries = [(tile, id) for tile, value in self.rule.getTileTypes.items() for i in range(value)]
-        random.shuffle(self.tilesSeries)
+        self._tileStack = list(range(len(self.id2tile))) # 牌堆 represents one turn stack
+        self.shuffleTileStack()
+        # hand tiles: [tileID]
+        self._handTiles =  [[] for i in range(self._agentSize)]  # 手牌 tiles in hand
+        # river tiles: [tileID]
+        self._riverTiles = [[] for i in range(self._agentSize)]  # 牌河 tiles in river
+        # open tiles: [(tileID, tileOpenType)] open type = 
+        self._openTiles =  [[] for i in range(self._agentSize)]  # 副露 tiles opened
+        self._riichii = {i:-1 for i in range(self._agentSize)}
 
-        for i in range(self.agentSize):
-            self.handTiles[i], self.tilesSeries = self.tilesSeries[:13], self.tilesSeries[13:]
-        assert len(self.handTiles[0]) == 13
+        for i in range(self._agentSize):
+            self._handTiles[i], self._tileStack = self._tileStack[:13], self._tileStack[13:]
 
-        allMountains, self.tilesSeries = self.tilesSeries[-10:], self.tilesSeries[:-10]
-        self.montainTiles = (allMountains[:5], allMountains[5:])
-        self.mountainIndicatorId = 0
+        allMountains, self._tileStack = self._tileStack[-10:], self._tileStack[:-10]
+        self._montainTiles = (allMountains[:5], allMountains[5:])
+        self._mountainIndicatorId = 0
 
+    def getNumericRepresentation(self):
+        pass
 
-
+    def getNumericRepresentationPartial(self, agentId):
+        '''i.e. fetures, including:
+        handtiles, rivertiles, opentiles, marks, wind
+        '''
+        pass
 
     def resetGame(self):
-        self.wind = 0 # E - S - W - N
-        self.roundCount = 0
-        self.marks = [25000 for i in range(self.agentSize)] # 分数
+        self._wind = 0 # E - S - W - N
+        self._roundCount = 0
+        self._marks = [25000 for i in range(self.agentSize)] # 分数
         self.resetTurn()
 
 
@@ -39,10 +61,11 @@ class JPState:
         '''since the global state is not visible to each agent, returns a partial state when required
         '''
         return {
-            'tiles': (self.handTiles[agentId], 
-                self.riverTiles, 
-                self.openTiles,
-                self.montainTiles),
-            'marks': self.marks,
-            'wind': self.wind
+            'tiles': (self._handTiles[agentId], 
+                self._riverTiles, 
+                self._openTiles,
+                self._montainTiles
+                ),
+            'marks': self._marks,
+            'wind': self._wind
         }
