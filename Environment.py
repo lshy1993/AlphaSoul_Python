@@ -9,7 +9,8 @@ class Environment(object):
         self._visualize = visualize
         
 
-    def reset():
+    def reset(self):
+        
         pass
 
     
