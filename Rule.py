@@ -3,9 +3,9 @@ import numpy as np
 import tool
 
 class Rule(object):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, name):
+        super(Rule, self).__init__()
+        self._ruleName = name
         # 总牌山
         self.yama = []
         # 玩家手牌
@@ -43,11 +43,17 @@ class Rule(object):
         # 终庄指示
         self.endGame = False
 
-    def avaliableActions(self, state):
+
+    def avaliableActions(self, state, agent):
+        '''get all possible action of a certain agent
+        
+        '''
         raise NotImplementedError
     
     def getActionTypes(self, state) -> list:
         '''get all actions types
+        Returns:
+           list [action_types]
         '''
         reAction = []
         if(self.curWind == state.seat):
@@ -59,18 +65,22 @@ class Rule(object):
         return reAction
         #raise NotImplementedError
 
-    def getTileTypes(self) -> list:
+    def getTileTypes(self) -> dict:
         '''get all tiles type 
-        '''
-        
-        raise NotImplementedError
-
-    def getRoundTerminateConditions(self) -> dict:
-        '''get one round terminate conditions
+        Returns:
+            dictionary (tile_type, number) tiles type with number of tiles
         '''
         raise NotImplementedError
 
     def isRoundTerminate(self, state) -> bool:
+        '''check if round is terminates 
+        (e.g. in japanese mahjong, east-south has 8 rounds for one game)
+
+        Requires:
+            state 
+        Return:
+            bool
+        '''
         # 胡牌/自摸
         
         # 四家立直
@@ -79,10 +89,18 @@ class Rule(object):
             return True
         # 荒牌流局
         return (self.yamaPos == self.yamaLast - 14)
+      
+        raise NotImplementedError
 
-        #raise NotImplementedError
+    def isGameTerminate(self, state) -> bool:
+        '''check if game terminate, i.e. reset marks
+        (e.g. in japanese mahjong, east-south has 8 rounds for one game)
 
-    def isGameTerminate(self, state, roundState) -> bool:
+        Requires:
+            state 
+        Return:
+            bool
+        '''
         # 结束整个对局
         if (np.min(self.score) < 0):
             # 有人被飞
@@ -102,14 +120,50 @@ class Rule(object):
                 return self.score[aid] == np.max(self.score)
             else:
                 return np.max(self.score) >= 30000
+              
+        raise NotImplementedError
 
-        #raise NotImplementedError
+    def initRound(self, state) -> None:
+        '''initialize a round, all change update state obj e.g. reset tile mountain
 
+        Requires:
+            state 
+        '''
+        raise NotImplementedError
 
-#class JPMahjongRule(Rule):
-#
-#    def __init__(self, *args, **kwargs):
-#        super().__init__(*args, **kwargs)
-#    
-#    def getActionTypes(self):
-#        return const.JP_OUT_TURN_ACTION_LIST +const.JP_TURN_ACTION_LIST
+    def finishRound(self, state) -> None:
+        '''finish round and count mark, all change update state obj
+
+        Requires:
+            state 
+        '''
+        raise NotImplementedError
+    
+    def initGame(self, state) -> None:
+        '''init a game, e.g. reset marks, all change update state obj
+        Requires:
+            state 
+        '''
+        
+        raise NotImplementedError
+
+    def finishGame(self, state) -> None:
+        '''finish a game, get the winner. all change update state obj
+
+        Requires:
+            state 
+        '''
+        
+        raise NotImplementedError
+
+class JPMahjongRule(Rule):
+    def __init__(self):
+        super(JPMahjongRule, self).__init__('Japan Mahjong Rule')
+    
+    def getActionTypes(self):
+        return const.JP_ACTION_LIST
+
+    def getTileTypes(self):
+        return const.JP_TILES_DICT
+    
+    
