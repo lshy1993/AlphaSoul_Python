@@ -37,16 +37,7 @@ class MianziMaker:
                 mianzi.append([("5"+s)+"|"+p2+"|"+p, 2])
             if(n-1 == 5 and bingpai[5] - bingpai[0] > 0):
                 mianzi.append([p1+"|"+("5"+s)+"|"+p, 2])
-
-        # n n+1 n+2
-        if (n <= 7 and bingpai[n+1] > 0 and bingpai[n+2] > 0):
-            p1 = MianziMaker.hong(n+1, bingpai[0] > 0) + s
-            p2 = MianziMaker.hong(n+2, bingpai[0] > 0) + s
-            mianzi.append([p+"|"+p1+"|"+p2, 2])
-            if(n+1 == 5 and bingpai[5]-bingpai[0] > 0):
-                mianzi.append([p+"|"+("5"+s)+"|"+p2, 2])
-            if(n+2 == 5 and bingpai[5]-bingpai[0] > 0):
-                mianzi.append([p+"|"+p1+"|"+("5"+s), 2])
+        
         # n-1 n n+1
         if (2 <= n and n <= 8 and bingpai[n-1] > 0 and bingpai[n+1] > 0):
             p1 = MianziMaker.hong(n-1, bingpai[0] > 0) + s
@@ -56,6 +47,17 @@ class MianziMaker:
                 mianzi.append([("5"+s)+"|"+p+"|"+p2, 2])
             if(n+1 == 5 and bingpai[5] - bingpai[0] > 0):
                 mianzi.append([p1+"|"+p+"|"+("5"+s), 2])
+        
+        # n n+1 n+2
+        if (n <= 7 and bingpai[n+1] > 0 and bingpai[n+2] > 0):
+            p1 = MianziMaker.hong(n+1, bingpai[0] > 0) + s
+            p2 = MianziMaker.hong(n+2, bingpai[0] > 0) + s
+            mianzi.append([p+"|"+p1+"|"+p2, 2])
+            if(n+1 == 5 and bingpai[5]-bingpai[0] > 0):
+                mianzi.append([p+"|"+("5"+s)+"|"+p2, 2])
+            if(n+2 == 5 and bingpai[5]-bingpai[0] > 0):
+                mianzi.append([p+"|"+p1+"|"+("5"+s), 2])
+
         return mianzi
     get_chi_mianzi = staticmethod(get_chi_mianzi)
 
@@ -64,7 +66,7 @@ class MianziMaker:
         mianzi = []
         s = p[1]
         n = int(p[0])
-        if(n == 5):
+        if(n == 0):
             n = 5
         d = p[2]
         bingpai = pCount[s]
@@ -75,10 +77,11 @@ class MianziMaker:
             p1 = MianziMaker.hong(n,bingpai[0]>0) + s
             p2 = MianziMaker.hong(n,bingpai[0]>1) + s
             mianzi.append([p1+"|"+p2+"|"+p,3])
-            if(n == 5 and bingpai[0] > 1):
-                mianzi.append([p1+"|"+("5"+s)+"|"+p,3])
-            if(n == 5 and bingpai[0] > 0):
-                mianzi.append([("5"+s)+"|"+("5"+s)+"|"+p,3])
+            if(n == 5 and bingpai[5] > 2):
+                mianzi.append([("5"+s)+"|"+p2+"|"+p,3])
+            # if(n == 5 and bingpai[5] > 3):
+            #     mianzi.append([("5"+s)+"|"+("5"+s)+"|"+p,3])
+        
         return mianzi
     get_peng_mianzi = staticmethod(get_peng_mianzi)
 
