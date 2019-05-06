@@ -210,7 +210,7 @@ class PaiMaker:
         # return newCount
 
     # 获取副露后的代码
-    def FuluCode(self,mianzi):
+    def FuluCode(mianzi):
         ch = ""
         code = ""
         for p in mianzi.split("|"):
@@ -218,9 +218,10 @@ class PaiMaker:
             code += p
         code = re.sub(ch,"",code) # code.replace(new RegExp(ch,"g"),"")
         return ch+code
+    FuluCode = staticmethod(FuluCode)
 
     # 计算副露后的统计
-    def GetFuluOff(self,plist,mianzi):
+    def GetFuluOff(plist,mianzi):
         newHand = copy.deepcopy(plist)
         if(mianzi[1] == 6):
         # 加杠牌
@@ -231,10 +232,13 @@ class PaiMaker:
             ii = newHand.indexOf(p)
             newHand.splice(ii,1)
         return newHand
+    GetFuluOff = staticmethod(GetFuluOff)
 
     # 根据宝牌代码获取真宝牌
-    def GetBao(self,baostr):    
-        num = baostr[0] - 0 or 5
+    def GetBao(baostr):    
+        num = int(baostr[0])
+        if(num == 0):
+            num = 5
         ch = baostr[1]
         if (ch == 'z'):
             if (num == 4):
@@ -248,7 +252,8 @@ class PaiMaker:
                 num = 1
             else:
                 num = num + 1
-        return num+ch
+        return str(num)+ch
+    GetBao = staticmethod(GetBao)
         
     def GetSortPai(self,hand):
         nh = copy.deepcopy(hand)
@@ -750,7 +755,7 @@ class RonJudger:
         new_mianzi = []
         for i in range(len(mianzi)):
             # 副露面
-            if ( re.match("[\-\+\=]",mianzi[i]) != None ):
+            if ( re.match(r"[\-\+\=]",mianzi[i]) != None ):
                 continue
             # 相同略
             if (i > 0 and mianzi[i] == mianzi[i - 1]):
@@ -767,4 +772,648 @@ class RonJudger:
 
         return new_mianzi
     AddMark = staticmethod(AddMark)
+
+class PtJudger:
+
+    def GetFen(shoupai, fulu, rongpai, param):
+        maxs = {
+            'hupai': None,
+            'fu': 0,
+            'fanshu': 0,
+            'damanguan': 0,
+            'defen': 0,
+            'fenpei': [0, 0, 0, 0]
+        }
+        pre_hupai = PtJudger.get_pre_hupai(param)
+        print('pre',pre_hupai)
+        post_hupai = PtJudger.get_post_hupai(''.join(shoupai)+''.join(fulu), param['baopai'], param['fubaopai'])
+
+        for mianzi in RonJudger.Ron(shoupai, rongpai, fulu):
+            print('mianzi:',mianzi)
+            hudi = PtJudger.get_hudi(mianzi, param['zhuangfeng'], param['menfeng'])
+            hupai = PtJudger.get_hupai(mianzi, hudi, pre_hupai)
+            if (len(hupai) == 0):
+                continue
+
+            fu = hudi['fu']
+            fanshu = 0
+            defen = 0
+            damanguan = 0
+            baojia2 = -1
+            defen2 = 0
+
+            
+            templist = list(filter(lambda x: True if '*' in str(x['fanshu']) else False, hupai))
+            # re.findall(r'\*', str(hupai[0]['fanshu'])) != None
+            print('*',templist)
+            if ( len(templist)>0 ):
+                # 存在役满的情况
+                for h in hupai:
+                    temp = re.findall(r'\*', str(h['fanshu']))
+                    if(temp != None):
+                        damanguan += len(temp)
+                        if ('baojia' in h.keys()):
+                            if(h['baojia'] == '+'):
+                                baojia2 = (param['menfeng'] + 1) % 4
+                            elif(h['baojia'] == '='):
+                                baojia2 = (param['menfeng'] + 2) % 4
+                            elif(h['baojia'] == '-'):
+                                baojia2 = (param['menfeng'] + 3) % 4
+                            else:
+                                baojia2 = -1
+                            defen2 = 8000 * len(temp)
+                defen = 8000 * damanguan
+            else:
+                hupai.extend(post_hupai)
+                for h in hupai:
+                    fanshu += h['fanshu']
+                
+                if (fanshu >= 13):
+                    defen = 8000
+                elif (fanshu >= 11):
+                    defen = 6000
+                elif (fanshu >= 8):
+                    defen = 4000
+                elif (fanshu >= 6):
+                    defen = 3000
+                else:
+                    defen = fu * 2 * 2
+                    for _ in range(fanshu):
+                        defen *= 2
+                    if (defen >= 2000):
+                        defen = 2000
+
+            fenpei = [0, 0, 0, 0]
+
+            if (defen2 > 0):
+                if (rongpai[2] != '_'):
+                    defen2 = defen2 / 2
+                defen = defen - defen2
+                if(param['menfeng'] == 0):
+                    defen2 = defen2 * 6
+                else:
+                    defen2 = defen2 * 4
+                
+                fenpei[param['menfeng']] = defen2
+                fenpei[baojia2] = -defen2
+
+            changbang = param['changbang']
+            lizhibang = param['lizhibang']
+
+            if (rongpai[2] != '_'):
+                # 放铳的计算
+                if(defen == 0):
+                    chongjia = baojia2
+                elif(rongpai[2] == '+'):
+                    chongjia = (param['menfeng'] + 1) % 4
+                elif(rongpai[2] == '='):
+                    chongjia = (param['menfeng'] + 2) % 4
+                elif(rongpai[2] == '-'):
+                    chongjia = (param['menfeng'] + 3) % 4
+                else:
+                    chongjia = param['menfeng']
+                
+                if(param['menfeng'] == 0):
+                    defen = math.ceil(defen * 6 / 100) * 100
+                else:
+                    defen = math.ceil(defen * 4 / 100) * 100
+                
+                fenpei[param['menfeng']] += defen + changbang * 300 + lizhibang * 1000
+                fenpei[chongjia] += -defen - changbang * 300
+            
+            else:
+                # 自摸的计算
+                zhuangjia = math.ceil(defen * 2 / 100) * 100
+                sanjia = math.ceil(defen / 100) * 100
+                if (param['menfeng'] == 0):
+                    # 庄家胡牌
+                    defen = zhuangjia * 3
+                    for l in range(4):
+                        if (l == param['menfeng']):
+                            fenpei[l] += defen + changbang * 300 + lizhibang * 1000
+                        else:
+                            fenpei[l] += -zhuangjia - changbang * 100
+                else:
+                    # 闲家胡牌
+                    defen = zhuangjia + sanjia * 2
+                    for l in range(4):
+                        if (l == param['menfeng']):
+                            fenpei[l] += defen + changbang * 300 + lizhibang * 1000
+                        elif (l == 0):
+                            fenpei[l] += -zhuangjia - changbang * 100
+                        else:
+                            fenpei[l] += -sanjia - changbang * 100
+
+            if (defen + defen2 > maxs['defen']
+                or defen + defen2 == maxs['defen']
+                or (not fanshu or fanshu > maxs['fanshu']
+                or fanshu == maxs['fanshu'] and fu > maxs['fu'])):
+                maxs = {
+                    'hupai': hupai,
+                    'fu': fu,
+                    'fanshu': fanshu,
+                    'damanguan': damanguan,
+                    'defen': defen + defen2,
+                    'fenpei': fenpei
+                }
+
+        return maxs
+    GetFen = staticmethod(GetFen)
+
+
+    def get_pre_hupai(param):
+
+        pre_hupai = []
+        if (param == []):
+            return []
+        # print(hupai)
+        if (param['lizhi'] == 1):
+            pre_hupai.append({ 'name': '立直', 'fanshu': 1 })
+        if (param['lizhi'] == 2):
+            pre_hupai.append({ 'name': '两立直', 'fanshu': 2 })
+        if (param['yifa']):
+            pre_hupai.append({ 'name': '一发', 'fanshu': 1 })
+        if (param['haidi'] == 1):
+            pre_hupai.append({ 'name': '海底摸月', 'fanshu': 1 })
+        if (param['haidi'] == 2):
+            pre_hupai.append({ 'name': '河底捞鱼', 'fanshu': 1 })
+        if (param['lingshang']):
+            pre_hupai.append({ 'name': '岭上开花', 'fanshu': 1 })
+        if (param['qianggang']):
+            pre_hupai.append({ 'name': '抢杠', 'fanshu': 1 })
+
+        if (param['tianhu'] == 1):
+            pre_hupai = [{ 'name': '天和', 'fanshu': '*' }]
+        if (param['tianhu'] == 2):
+            pre_hupai = [{ 'name': '地和', 'fanshu': '*' }]
+        return pre_hupai
+    get_pre_hupai = staticmethod(get_pre_hupai)
+
+
+    def get_post_hupai(paistr, baopai, fubaopai):
+        post_hupai = []
+        temp = re.match(r"[^mpsz,]*[mpsz]",paistr)
+        if( temp != None ):
+            substr = temp.group()
+        else:
+            substr = []
+        # 宝牌
+        n_baopai = 0
+        for p in baopai:
+            p = PaiMaker.GetBao(p)
+            regexp = p[1]
+            for sstr in substr:
+                if (sstr[0] != p[0]):
+                    continue
+                sstr = sstr.replace('0', '5')
+                nn = re.findall(regexp,sstr)
+                if (nn != None):
+                    n_baopai += len(nn)
+
+        if (n_baopai > 0):
+            post_hupai.append({ 'name': '宝牌', 'fanshu': n_baopai })
+
+        # 红宝
+        n_hongpai = 0
+        nn = re.findall('0',paistr)
+        if (nn != None):
+            n_hongpai = len(nn)
+        if (n_hongpai > 0):
+            post_hupai.append({ 'name': '红宝牌', 'fanshu': n_hongpai })
+
+        # 里宝牌
+        n_fubaopai = 0
+        for p in fubaopai:
+            p = PaiMaker.GetBao(p)
+            regexp = p[1]
+            for sstr in substr:
+                if (sstr[0] != p[0]):
+                    continue
+                sstr = sstr.replace('0', '5')
+                nn = re.findall(regexp,sstr)
+                if (nn != None):
+                    n_fubaopai += len(nn)
+        if (n_fubaopai>0):
+            post_hupai.append({ 'name': '里宝牌', 'fanshu': n_fubaopai })
+
+        return post_hupai
+    get_post_hupai = staticmethod(get_post_hupai)
+
+
+    def get_hudi(mianzi, zhuangfeng, menfeng):
+        # 正则表达
+        zhuangfengpai = '^z' + str(zhuangfeng + 1) + '.*$'
+        menfengpai = '^z' + str(menfeng + 1) + '.*$'
+        sanyuanpai = r"^z[567].*$"
+
+        yaojiu = r"^.*[z19].*$"
+        zipai = r"^z.*$"
+
+        kezi = r"^[mpsz](\d)\1\1.*$"
+        ankezi = r"^[mpsz](\d)\1\1(?:\1|_\!)?$"
+        gangzi = r"^[mpsz](\d)\1\1.*\1.*$"
+
+        danqi = r"^[mpsz](\d)\1[\-\+\=\_]\!$"
+        kanzhang = r"^[mps]\d\d[\-\+\=\_]\!\d$"
+        bianzhang = r"^[mps](123[\-\+\=\_]\!|7[\-\+\=\_]\!89)$"
+        
+        # 牌面判定参数
+        hudi = {
+            'fu': 20,
+            'menqian': True,
+            'zimo': True,
+            'shunzi': { 
+                'm': {},
+                'p': {},
+                's': {}
+            },
+            'kezi': {
+                'm': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                'p': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                's': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                'z': [0, 0, 0, 0, 0, 0, 0, 0]
+            },
+            'n_shunzi': 0,
+            'n_kezi': 0,
+            'n_ankezi': 0,
+            'n_gangzi': 0,
+            'n_zipai': 0,
+            'n_yaojiu': 0,
+            'danqi': False,
+            'pinghu': False,
+            'zhuangfeng': zhuangfeng,
+            'menfeng': menfeng
+        }
+
+        for m in mianzi:
+            if ( re.match(r"[\-\+\=]\!",m) != None):
+                hudi['zimo'] = False
+            if ( re.match(r"[\-\+\=](?!\!)",m) != None):
+                hudi['menqian'] = False
+
+            if (re.match(yaojiu,m) != None):
+                hudi['n_yaojiu'] += 1
+            if (re.match(zipai,m) != None):
+                hudi['n_zipai'] += 1
+
+            if (re.match(danqi,m) != None):
+                hudi['danqi'] = True
+
+            if ( len(mianzi) != 5):
+                # print('len != 5')
+                continue
+
+            # 雀头的判定
+            if (m == mianzi[0]):
+                fu = 0
+                if (re.match(zhuangfengpai,m) != None):
+                    fu += 2
+                if (re.match(menfengpai,m) != None):
+                    fu += 2
+                if (re.match(sanyuanpai,m) != None):
+                    fu += 2
+                hudi['fu'] += fu
+                if (hudi['danqi']):
+                    hudi['fu'] += 2
+            elif ( re.match(kezi,m) != None):
+                hudi['n_kezi'] += 1
+                fu = 2
+                if (re.match(yaojiu,m) != None):
+                    fu *= 2
+                if (re.match(ankezi,m) != None):
+                    fu *= 2
+                    hudi['n_ankezi'] += 1
+                if (re.match(gangzi,m) != None):
+                    fu *= 4
+                    hudi['n_gangzi'] += 1
+                hudi['fu'] += fu
+                hudi['kezi'][m[0]][int(m[1])] = 1
+            else:
+                hudi['n_shunzi'] += 1
+                if (re.match(kanzhang,m) != None):
+                    hudi['fu'] += 2
+                if (re.match(bianzhang,m) != None):
+                    hudi['fu'] += 2
+                nnn = m.replace(r"[^\d]",'')
+                if (nnn not in hudi['shunzi'][m[0]]):
+                    hudi['shunzi'][m[0]][nnn] = 1
+                else:
+                    hudi['shunzi'][m[0]][nnn] += 1
+
+        if ( len(mianzi) == 7):
+            hudi['fu'] = 25
+        elif ( len(mianzi) == 5):
+            hudi['pinghu'] = (hudi['menqian'] and hudi['fu'] == 20)
+            if (hudi['zimo']):
+                if (not hudi['pinghu']):
+                    hudi['fu'] += 2
+            else:
+                if (hudi['menqian']):
+                    hudi['fu'] += 10
+                elif (hudi['fu'] == 20):
+                    hudi['fu'] = 30
+            hudi['fu'] = math.ceil(hudi['fu'] / 10) * 10
+
+        return hudi
+    get_hudi = staticmethod(get_hudi)
+
+
+    def get_hupai(mianzi, hudi, pre_hupai):
+
+        def menqianqing():
+            if (hudi['menqian'] and hudi['zimo']):
+                return [{ 'name': '门前清自摸和', 'fanshu': 1 }]
+            else:
+                return []
+
+        def fanpai():
+            feng_hanzi = ['东', '南', '西', '北']
+            fanpai_all = []
+            if (hudi['kezi']['z'][hudi['zhuangfeng'] + 1]):
+                fanpai_all.append({
+                    'name': '场风牌 ' + feng_hanzi[hudi.zhuangfeng],
+                    'fanshu': 1
+                })
+            if (hudi['kezi']['z'][hudi['menfeng'] + 1]):
+                fanpai_all.append({
+                    'name': '门风牌 ' + feng_hanzi[hudi.menfeng],
+                    'fanshu': 1
+                })
+            if (hudi['kezi']['z'][5] > 0):
+                fanpai_all.append({ 'name': '役牌 白', 'fanshu': 1 })
+            if (hudi['kezi']['z'][6] > 0):
+                fanpai_all.append({ 'name': '役牌 发', 'fanshu': 1 })
+            if (hudi['kezi']['z'][7] > 0):
+                fanpai_all.append({ 'name': '役牌 中', 'fanshu': 1 })
+            return fanpai_all
+
+        def pinghu():
+            if (hudi['pinghu']):
+                return [{ 'name': '平和', 'fanshu': 1 }]
+            return []
+
+        def duanyaojiu():
+            if (hudi['n_yaojiu'] == 0):
+                return [{ 'name': '断幺九', 'fanshu': 1 }]
+            return []
+
+        def yibeikou():
+            if (not hudi['menqian']):
+                return []
+            beikou = 0
+            for s in hudi['shunzi']:
+                for m in hudi['shunzi'][s]:
+                    if (hudi['shunzi'][s][m] > 3):
+                        beikou += 1
+                    if (hudi['shunzi'][s][m] > 1):
+                        beikou += 1
+
+            if (beikou == 1):
+                return [{ 'name': '一杯口', 'fanshu': 1 }]
+            return []
+
+
+        def sansetongshun():
+            shunzi = hudi['shunzi']
+            for m in shunzi['m']:
+                if (m in shunzi['p'] and m in shunzi['s']):
+                    if(hudi['menqian']):
+                        fanshu = 2
+                    else:
+                        fanshu = 1 
+                    return [{ 'name': '三色同顺', 'fanshu': fanshu }]
+            return []
+
+        def yiqitongguan():
+            shunzi = hudi['shunzi']
+            for s in shunzi:
+                if ('123' in shunzi[s] and '456' in shunzi[s] and '789' in shunzi[s]):
+                    if(hudi['menqian']):
+                        fanshu = 2
+                    else:
+                        fanshu = 1 
+                    return [{ 'name': '一气通贯', 'fanshu': fanshu }]
+            return []
+
+        def hunquandaiyaojiu():
+            if (hudi['n_yaojiu'] == 5 and hudi['n_shunzi'] > 0 and hudi['n_zipai'] > 0):
+                if(hudi['menqian']):
+                    fanshu = 2
+                else:
+                    fanshu = 1 
+                return [{ 'name': '混全带幺九', 'fanshu': fanshu }]
+            return []
+
+        def qiduizi():
+            if (len(mianzi) == 7):
+                return [{ 'name': '七对子', 'fanshu': 2 }]
+            return []
+
+        def duiduihu():
+            if (hudi['n_kezi'] == 4):
+                return [{ 'name': '对对胡', 'fanshu': 2 }]
+            return []
+
+        def sananke():
+            if (hudi['n_ankezi'] == 3):
+                return [{ 'name': '三暗刻', 'fanshu': 2 }]
+            return []
+
+        def sangangzi():
+            if (hudi['n_gangzi'] == 3):
+                return [{ 'name': '三杠子', 'fanshu': 2 }]
+            return []
+
+        def sansetongke():
+            kezi = hudi['kezi']
+            for n in range(1,10):
+                if (kezi['m'][n] + kezi['p'][n] + kezi['s'][n] == 3):
+                    return [{ 'name': '三色同刻', 'fanshu': 2 }]
+            return []
+        
+        def hunlaotou():
+            if (hudi['n_yaojiu'] == len(mianzi) and hudi['n_shunzi'] == 0 and hudi['n_zipai'] > 0):
+                return [{ 'name': '混老头', 'fanshu': 2 }]
+            return []
+
+        def xiaosanyuan():
+            if (hudi['kezi']['z'][5] + hudi['kezi']['z'][6] + hudi['kezi']['z'][7] == 2 and re.match(r"^z[567]",mianzi[0]) != None):
+                return [{ 'name': '小三元', 'fanshu': 2 }]
+            return []
+
+        def hunyise():
+            for s in ['m', 'p', 's']:
+                yise = '^[z' + s + '].*$'
+                temp = list(filter(lambda x: True if re.match(yise,x) != None else False, mianzi))
+                if(len(temp) == len(mianzi) and hudi['n_zipai'] > 0):
+                    if(hudi['menqian']):
+                        fanshu = 3
+                    else:
+                        fanshu = 2 
+                    return [{ 'name': '混一色', 'fanshu': fanshu }]
+
+            return []
+
+        def chunquandaiyaojiu():
+            if (hudi['n_yaojiu'] == 5 and hudi['n_shunzi'] > 0 and hudi['n_zipai'] == 0):
+                if(hudi['menqian']):
+                    fanshu = 3
+                else:
+                    fanshu = 2
+                return [{ 'name': '纯全带幺九', 'fanshu': fanshu }]
+            return []
+
+        def erbeikou():
+            if (not hudi['menqian']):
+                return []
+            beikou = 0
+            for s in hudi['shunzi']:
+                for m in hudi['shunzi'][s]:
+                    if (hudi['shunzi'][s][m] > 3):
+                        beikou += 1
+                    if (hudi['shunzi'][s][m] > 1):
+                        beikou += 1
+
+            if (beikou == 2):
+                return [{ 'name': '二杯口', 'fanshu': 3 }]
+            return []
+
+        def qingyise():
+            for s in ['m', 'p', 's']:
+                yise = '^[z' + s + '].*$'
+                yiselist = list(filter(lambda x: True if re.match(yise,x) != None else False, mianzi))
+                if (len(yiselist) == len(mianzi) and hudi['n_zipai'] == 0):
+                    if(hudi['menqian']):
+                        fanshu = 6
+                    else:
+                        fanshu = 5
+                    return [{ 'name': '清一色', 'fanshu': fanshu }]
+            return []
+
+        def guoshiwushuang():
+            if (len(mianzi) != 13):
+                return []
+            if (hudi['danqi']):
+                return [{ 'name': '国士无双十三面', 'fanshu': '**' }]
+            else:
+                return [{ 'name': '国士无双', 'fanshu': '*' }]
+
+        def sianke():
+            if (hudi['n_ankezi'] != 4):
+                return []
+            if (hudi['danqi']):
+                return [{ 'name': '四暗刻单骑', 'fanshu': '**' }]
+            else:
+                return [{ 'name': '四暗刻', 'fanshu': '*' }]
+
+        def dasanyuan():
+            if (hudi['kezi']['z'][5] + hudi['kezi']['z'][6] + hudi['kezi']['z'][7] == 3):
+
+                bao_mianzi = list(filter(lambda x: True if re.match(r"^z([567])\1\1(?:[\-\+\=]|\1)(?!\!)",x) != None else False, mianzi))
+                if( len(bao_mianzi) > 2):
+                    baojia = re.match(r"[\-\+\=]", bao_mianzi[2])
+                    if(baojia != None):
+                        baojia = baojia.group()
+                    else:
+                        baojia = 0
+                else:
+                    baojia = 0
+                return [{ 'name': '大三元', 'fanshu': '*', 'baojia': baojia }]
+
+            return []
+
+        def sixihu():
+            kezi = hudi['kezi']
+            if (kezi['z'][1] + kezi['z'][2] + kezi['z'][3] + kezi['z'][4] == 4):
+                bao_mianzi = list(filter(lambda x: True if re.match(r"^z([1234])\1\1(?:[\-\+\=]|\1)(?!\!)",x) != None else False, mianzi))
+                if(len(bao_mianzi)>3):
+                    baojia = re.match(r"[\-\+\=]",bao_mianzi[3]).group()
+                    baojia = baojia[0]
+                else:
+                    baojia = 0
+                return [{ 'name': '大四喜', 'fanshu': '**', 'baojia': baojia }]
+            if (kezi['z'][1] + kezi['z'][2] + kezi['z'][3] + kezi['z'][4] == 3 and re.match(r"^z[1234]",mianzi[0]) != None):
+                return [{ 'name': '小四喜', 'fanshu': '*' }]
+            return []
+
+        def ziyise():
+            if (hudi['n_zipai'] == len(mianzi)):
+                return [{ 'name': '字一色', 'fanshu': '*' }]
+            return []
+
+        def lvyise():
+            if(len(list(filter(lambda x: True if re.match(r"^[mp]",x) != None else False, mianzi))) > 0):
+                return []
+            if(len(list(filter(lambda x: True if re.match(r"^z[^6]",x) != None else False, mianzi))) > 0):
+                return []
+            if(len(list(filter(lambda x: True if re.match(r"^s.*[1579]",x) != None else False, mianzi))) > 0):
+                return []
+            return [{ 'name': '绿一色', 'fanshu': '*' }]
+
+        def qinglaotou():
+            if (hudi['n_kezi'] == 4 and hudi['n_yaojiu'] == 5 and hudi['n_zipai'] == 0):
+                return [{ 'name': '清老头', 'fanshu': '*' }]
+            return []
+
+        def sigangzi():
+            if (hudi['n_gangzi'] == 4):
+                return [{ 'name': '四杠子', 'fanshu': '*' }]
+            return []
+        
+        def jiulianbaodeng():
+            if (len(mianzi) != 1):
+                return []
+            if ( re.match(r"^[mps]1112345678999",mianzi[0]) != None):
+                return [{ 'name': '纯正九莲宝灯', 'fanshu': '**' }]
+            else:
+                return [{ 'name': '九莲宝灯', 'fanshu': '*' }]
+
+
+        if( len(pre_hupai) > 0 and pre_hupai[0]['fanshu'] == '*'):
+            damanguan = copy.deepcopy(pre_hupai)
+        else:
+            damanguan = []
+        
+        damanguan.extend(guoshiwushuang())
+        damanguan.extend(sianke())
+        damanguan.extend(dasanyuan())
+        damanguan.extend(sixihu())
+        damanguan.extend(ziyise())
+        damanguan.extend(lvyise())
+        damanguan.extend(qinglaotou())
+        damanguan.extend(sigangzi())
+        damanguan.extend(jiulianbaodeng())
+
+        # 已经役满直接返回
+        if ( len(damanguan) > 0):
+            return damanguan
+
+        # 一般役
+        pre = copy.deepcopy(pre_hupai)
+        pre.extend(menqianqing())
+        pre.extend(fanpai())
+        pre.extend(pinghu())
+        pre.extend(duanyaojiu())
+        pre.extend(yibeikou())
+        pre.extend(sansetongshun())
+        pre.extend(yiqitongguan())
+        pre.extend(hunquandaiyaojiu())
+        pre.extend(qiduizi())
+        pre.extend(duiduihu())
+        pre.extend(sananke())
+        pre.extend(sangangzi())
+        pre.extend(sansetongke())
+        pre.extend(hunlaotou())
+        pre.extend(xiaosanyuan())
+        pre.extend(hunyise())
+        pre.extend(chunquandaiyaojiu())
+        pre.extend(erbeikou())
+        pre.extend(qingyise())
+
+        return pre
+    get_hupai = staticmethod(get_hupai)
+
+
+    
+
 

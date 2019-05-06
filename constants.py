@@ -44,7 +44,7 @@ JP_TILES_DISPLAY = [
 # TSUMO = 自摸　ツモ
 # RIICHI = 立直　リーチ
 # PASS = 放弃切牌以外权利 切る以外やめる
-JP_ACTION_LIST = ['CHI', 'PON', 'KAN', 'RON', 'TSUMO', 'PASS', 'RIICHI', 'DISCARD']
+# JP_ACTION_LIST = ['CHI', 'PON', 'KAN', 'RON', 'TSUMO', 'PASS', 'RIICHI', 'DISCARD']
 
 # list tiles in japanese mahjong
 # p = 筒 circle

@@ -51,10 +51,10 @@
 |type|含义|combination|说明|
 |-|-|-|-|
 |1|切牌| string[] | 禁手牌 |
-|2|吃| string | 吃牌可能，例如`'2m|3m|4m-'` |
-|3|碰| string | 碰牌可能，例如`'2m|2m|2m+'` |
+|2|吃| string | 吃牌可能，例如 `'2m|3m|4m-'` |
+|3|碰| string | 碰牌可能，例如 `'2m|2m|2m+'` |
 |4|暗杠| string | 暗杠 `'2m|2m|2m|2m_'` |
-|5|明杠| string | 明杠例如`'m222|2m_'` |
+|5|明杠| string | 明杠例如 `'m222|2m_'` |
 |6|加杠| ['2m|3m|4m-',2][] | |
 |7|立直| ['2m|3m|4m-',2][] | |
 |8|自摸| string | 自摸牌，例 `'2m_'` |
@@ -136,3 +136,22 @@
 |type| string |是| `['hu','zimo']` |副露牌|
 |from| int |是|-|荣和/自摸的玩家编号|
 |tile| object[] | |-| [胡了牌，类型（8:自摸 9:荣和）] 详见operation|
+
+# Param 胡牌判定参数说明
+胡牌判定，需要传入手牌、副露牌、参数
+
+|字段名|类型|说明|
+|-|-|-|
+|zhuangfeng|int| 当前场风 |
+|menfeng|int| 玩家自风 |
+|baopai| int[] | 宝牌指示牌 |
+|fubaopai| int[] | 里宝牌 |
+|changbang| int | 寄存的场棒数 |
+|lizhibang| int | 寄存的立直棒数 |
+|lizhi| int | 立直状态（0无 1立 2两立） |
+|yifa| bool | 是否一发 |
+|qianggang| bool | 是否抢杠 |
+|lingshang| bool | 是否岭上 |
+|haidi| int | 是海底（0无 1海底 2河底） |
+|tianhu| int | 是否天地胡（0无 1天 2地） |
+
