@@ -3,6 +3,7 @@ import math
 import random
 import constants as const
 import copy
+from functools import cmp_to_key
 
 
 class MianziMaker:
@@ -255,18 +256,17 @@ class PaiMaker:
         return str(num)+ch
     GetBao = staticmethod(GetBao)
         
-    def GetSortPai(self,hand):
+    def GetSortPai(hand):
         nh = copy.deepcopy(hand)
-        nh.sort(self.cmp)
-        return nh
-
-    def cmp(self,a,b):
-        tv = {"m":0,"p":1,"s":2,"z":3}
-        a = a.replace('0','5')
-        b = b.replace('0','5')
-        if(a[1] == b[1]):
-            return a[0] < b[0]
-        return tv[a[1]] < tv[b[1]]
+        def cmp(a,b):
+            tv = {"m":0,"p":1,"s":2,"z":3}
+            a = a.replace('0','5')
+            b = b.replace('0','5')
+            if(a[1] == b[1]):
+                return int(a[0]) - int(b[0])
+            return tv[a[1]] - tv[b[1]]
+        return sorted(nh,key=cmp_to_key(cmp))
+    GetSortPai = staticmethod(GetSortPai)
 
 
 class TingJudger:
@@ -473,7 +473,7 @@ class TingJudger:
         if(you_duizi):
             return 12 - n_yaojiu
         else:
-            13 - n_yaojiu
+            return 13 - n_yaojiu
     xiangting_guoshi = staticmethod(xiangting_guoshi)
 
     # 求可以（进张）听的牌
@@ -488,7 +488,7 @@ class TingJudger:
                     continue
                 paiCount[ch][n] += 1
                 if (TingJudger.xiangting(paiCount, fulu) < n_xiangting):
-                    pai.append(n+ch)
+                    pai.append(str(n)+ch)
                 paiCount[ch][n] -= 1
 
         return pai
@@ -785,11 +785,11 @@ class PtJudger:
             'fenpei': [0, 0, 0, 0]
         }
         pre_hupai = PtJudger.get_pre_hupai(param)
-        print('pre',pre_hupai)
+        #print('pre',pre_hupai)
         post_hupai = PtJudger.get_post_hupai(''.join(shoupai)+''.join(fulu), param['baopai'], param['fubaopai'])
 
         for mianzi in RonJudger.Ron(shoupai, rongpai, fulu):
-            print('mianzi:',mianzi)
+            print('\n和了形拆分:{}'.format(mianzi))
             hudi = PtJudger.get_hudi(mianzi, param['zhuangfeng'], param['menfeng'])
             hupai = PtJudger.get_hupai(mianzi, hudi, pre_hupai)
             if (len(hupai) == 0):
@@ -805,9 +805,10 @@ class PtJudger:
             
             templist = list(filter(lambda x: True if '*' in str(x['fanshu']) else False, hupai))
             # re.findall(r'\*', str(hupai[0]['fanshu'])) != None
-            print('*',templist)
+            
             if ( len(templist)>0 ):
                 # 存在役满的情况
+                print('役满: {}'.format(templist))
                 for h in hupai:
                     temp = re.findall(r'\*', str(h['fanshu']))
                     if(temp != None):
@@ -1131,12 +1132,12 @@ class PtJudger:
             fanpai_all = []
             if (hudi['kezi']['z'][hudi['zhuangfeng'] + 1]):
                 fanpai_all.append({
-                    'name': '场风牌 ' + feng_hanzi[hudi.zhuangfeng],
+                    'name': '场风牌 ' + feng_hanzi[hudi['zhuangfeng']],
                     'fanshu': 1
                 })
             if (hudi['kezi']['z'][hudi['menfeng'] + 1]):
                 fanpai_all.append({
-                    'name': '门风牌 ' + feng_hanzi[hudi.menfeng],
+                    'name': '门风牌 ' + feng_hanzi[hudi['menfeng']],
                     'fanshu': 1
                 })
             if (hudi['kezi']['z'][5] > 0):

@@ -3,67 +3,37 @@ import numpy as np
 import tool
 
 class Rule(object):
-    def __init__(self, name):
+    def __init__(self):
         super(Rule, self).__init__()
-        self._ruleName = name
-        # 总牌山
-        self.yama = []
-        # 玩家手牌
-        self.handStack = [[],[],[],[]]
-        # 牌河
-        self.riverStack = [[],[],[],[]]
-        # 鸣牌区域
-        self.fuluStack = [[],[],[],[]]
-        # 宝牌
-        self.bao = []
-        self.libao = []
-        # 牌山位置指示
-        self.yamaPos = 0
-        self.yamaLast = 0
-        self.baoPos = 0
-        # 场风
-        self.changfeng = 0
-        # 4家各风
-        self.playerWind = [0,1,2,3]
-        self.playerLizhi = [0,0,0,0]
-        self.diyizimo = [True,True,True,True]
-        self.yifa = [False,False,False,False]
-        # 场棒
-        self.changbang = 0
-        self.lizhibang = 0
-        # 4家得分        
-        self.score = [25000,25000,25000,25000]
-        # 当前轮到的玩家
-        self.curWind = 0
-        self.qinjia = 0
-        # 单局结束
-        self.endSection = False
-        # 是否连庄
-        self.lianzhuang = False
-        # 终庄指示
-        self.endGame = False
+        # self._ruleName = name
 
-
-    def avaliableActions(self, state, agent):
+    def avaliableActions(self, state, action):
         '''get all possible action of a certain agent
         
         '''
-        raise NotImplementedError
+        agent = int(action['from'])
+        hand = state.handStack[agent]
+        fulu = state.fuluStack[agent]
+        print(action)
+        print(agent,hand,fulu)
+        # 0-13 14吃15碰16杠 17胡18自摸 19取消
+        if len(hand) + len(fulu) * 3 == 13:
+            # 他人的回合
+            return action in [14,15,16,17,19]
+        elif len(hand) + len(fulu) * 3 == 14:
+            # 自己的回合
+            return action in [0,1,2,3,4,5,6,7,8,9,10,11,12,13,16,18]
+        else:
+            print('手牌数目不符')
+            return False
+        # raise NotImplementedError
     
     def getActionTypes(self, state) -> list:
         '''get all actions types
         Returns:
            list [action_types]
         '''
-        reAction = []
-        if(self.curWind == state.seat):
-            # 自己的回合
-            reAction.append(const.JP_TURN_ACTION_LIST.KIRU)
-        else:
-            # 他人的回合
-            reAction.append(const.JP_OUT_TURN_ACTION_LIST)
-        return reAction
-        #raise NotImplementedError
+        raise NotImplementedError
 
     def getTileTypes(self) -> dict:
         '''get all tiles type 
@@ -84,13 +54,13 @@ class Rule(object):
         # 胡牌/自摸
         
         # 四家立直
-        tmplist = filter(lambda x: True if x else False ,self.playerLizhi)
+        tmplist = filter(lambda x: True if x else False ,state.playerLizhi)
         if(len(tmplist) == 4):
             return True
         # 荒牌流局
-        return (self.yamaPos == self.yamaLast - 14)
+        return (state.yamaPos == state.yamaLast - 14)
       
-        raise NotImplementedError
+        # raise NotImplementedError
 
     def isGameTerminate(self, state) -> bool:
         '''check if game terminate, i.e. reset marks
@@ -102,26 +72,26 @@ class Rule(object):
             bool
         '''
         # 结束整个对局
-        if (np.min(self.score) < 0):
+        if (np.min(state.score) < 0):
             # 有人被飞
             print('有人被飞')
             return True
-        elif(self.changfeng == 2):
+        elif(state.changfeng == 2):
             # 西入时，只要有任何人超过30000 或到4局 即结束
             print('西入判定')
-            return (self.qinjia == 3 or np.max(self.score) >= 30000)
-        elif(self.changfeng >= 1 and self.qinjia == 3):
+            return (state.qinjia == 3 or np.max(state.score) >= 30000)
+        elif(state.changfeng >= 1 and state.qinjia == 3):
             # 南4判定
             print('南4判定')
-            if(self.lianzhuang):
-                aid = self.playerWind[0]
+            if(state.lianzhuang):
+                aid = state.playerWind[0]
                 print(aid)
                 # 连庄 亲家若第一 结束
-                return self.score[aid] == np.max(self.score)
+                return state.score[aid] == np.max(state.score)
             else:
-                return np.max(self.score) >= 30000
+                return np.max(state.score) >= 30000
               
-        raise NotImplementedError
+        #raise NotImplementedError
 
     def initRound(self, state) -> None:
         '''initialize a round, all change update state obj e.g. reset tile mountain
