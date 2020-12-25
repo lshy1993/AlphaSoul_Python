@@ -9,7 +9,7 @@ def update():
     for episode in range(100):
         print('episode{} start\n'.format(episode))
         # initial observation
-        observation = env.newgame(1)
+        observation = env.newgame()
         # 记录开局后所有state
         statelist = [[],[],[],[]]
         while True:
@@ -39,28 +39,29 @@ def update():
             observation_, reward, done = env.step(msgList)
             #print('reward: {}'.format(reward))
             
-            # for k,act in enumerate(action):
-            #     if act == None:
-            #         continue
-            #     code_ = coding(observation_,k)
-            #     # RL learn from this transition
-            #     RL.learn(code, act, reward[k], code_)
+            for k,act in enumerate(action):
+                if act == None:
+                    continue
+                code_ = coding(observation_,k)
+                # RL learn from this transition
+                RL.learn(code, act, reward[k], code_)
 
             # swap observation
             observation = observation_
 
             if env.endSection:
-                # 100局保存qtable
-                if env.pp % 100 == 0:
-                    RL.save()
                 # 有奖励则将整个过程学习
                 for i in range(4):
                     if reward[i] > 0:
-                        for k in range(len(statelist)-1):
-                            state_old = statelist[k]['state']
-                            state_next = statelist[k+1]['state']
-                            act = statelist[k+1]['action']
-                            RL.learn(state_old,act,reward[k]/1000,state_next)
+                        st = statelist[i]
+                        for k in range(len(st)):
+                            state_old = st[k]['state']
+                            if(k+1 == len(st)):
+                                state_next = 'terminal'
+                            else:
+                                state_next = st[k+1]['state']
+                            act = st[k+1]['action']
+                            RL.learn(state_old,act,reward[i]/1000,state_next)
                 # 清空
                 statelist = [[],[],[],[]]
             
@@ -68,7 +69,10 @@ def update():
             if done:
                 break
 
-        print('episode{} end'.format(episode))
+        print('episode{} end, {} game played'.format(episode,env.pp))
+        # 5个episode保存qtable
+        #if episode % 5 == 0:
+        RL.save()
 
     print('train end')
     # env.destroy()

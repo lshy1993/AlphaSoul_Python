@@ -22,10 +22,24 @@ from tool import PaiMaker
 from tool import PtJudger
 from tool import TingJudger
 from tool import MianziMaker
+import re
+
 handStack = ['0s']
-fuluStack = ['s55-!', 'p777=', 'm67-8', 's234-', 'p111-']
+fuluStack = ['p777=', 'm67-8', 's234-', 'p111-']
 mopai = '5s-'
 handStack.append(mopai)
+
+# handStack = ['5m', '5m', '2p', '3p', '4p', '3s', '5s', '4s=']
+# fuluStack = ['p456-', 's789-']
+# mopai = '4s='
+# handStack.append(mopai)
+
+# handStack = [ "1m", "9m", "1p", "9p", "1s", "9s", "1z", "2z", "3z", "4z", "5z", "6z", "7z"]
+# fuluStack = []
+# mopai = '1z-'
+# handStack.append(mopai)
+
+
 #print(PaiMaker.GetSortPai(handStack))
 param = {
     'zhuangfeng': 0,

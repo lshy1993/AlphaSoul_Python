@@ -198,7 +198,7 @@ class PaiMaker:
     GetCountOff = staticmethod(GetCountOff)
 
     # 复制牌统计
-    def CopyCount(self,pcount):
+    def CopyCount(pcount):
         return copy.deepcopy(pcount)
         # newCount = {
         #     m: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -292,7 +292,6 @@ class TingJudger:
             d = d + 1
         return 13 - m * 3 - d * 2 - g
     _xiangting = staticmethod(_xiangting)
-
 
     # 求向听数
     def xiangting(paiCount, fulu):
@@ -526,7 +525,7 @@ class TingJudger:
     def IsZhenting(tingpai,riverstr):
         riverstr = riverstr.replace('0','5')
         for p in tingpai:
-            if(re.match(p,riverstr) != None):
+            if(re.search(p,riverstr) != None):
                 return True
         return False
     IsZhenting = staticmethod(IsZhenting)
@@ -543,13 +542,13 @@ class RonJudger:
         jiulianm = RonJudger.Ron_jiulian(paiCount, moPai)
         # 一般 4面1头形
         yibanm = RonJudger.Ron_normal(paiCount, moPai, fulu)
-        
+
         mianzi = []
         mianzi.extend(qiduim)
         mianzi.extend(guoshim)
         mianzi.extend(jiulianm)
         mianzi.extend(yibanm)
-        
+
         return mianzi
     Ron = staticmethod(Ron)
 
@@ -631,7 +630,7 @@ class RonJudger:
                 else:
                     nn = shoupai[n]
                 
-                for i in range(0,nn):
+                for _ in range(0,nn):
                     mianzi += str(n)
 
             if (len(mianzi) == 14):
@@ -755,13 +754,13 @@ class RonJudger:
         new_mianzi = []
         for i in range(len(mianzi)):
             # 副露面
-            if ( re.match(r"[\-\+\=]",mianzi[i]) != None ):
+            if ( re.search(r"[\-\+\=]",mianzi[i]) != None ):
                 continue
             # 相同略
             if (i > 0 and mianzi[i] == mianzi[i - 1]):
                 continue
-            ss = re.match(regexp,mianzi[i])
-            if(ss):
+            ss = re.search(regexp,mianzi[i])
+            if(ss != None):
                 replacer = ss.group()+p[2] + "!"
             m = re.sub(regexp,replacer,mianzi[i],1)
             if (m == mianzi[i]):
@@ -1047,9 +1046,10 @@ class PtJudger:
         }
 
         for m in mianzi:
-            if ( re.match(r"[\-\+\=]\!",m) != None):
+            # print(m)
+            if ( re.search(r"[\-\+\=]\!",m) != None):
                 hudi['zimo'] = False
-            if ( re.match(r"[\-\+\=](?!\!)",m) != None):
+            if ( re.search(r"[\-\+\=](?!\!)",m) != None):
                 hudi['menqian'] = False
 
             if (re.match(yaojiu,m) != None):

@@ -16,6 +16,7 @@ class Environment(tk.Tk,object):
         super().__init__()
         self._rule = rule
         self.msgList = [None,None,None,None]
+        self.ym = PaiMaker.GeneratePai()
         self.pp = 0
         self._visualize = visualize
         if(self._visualize):
@@ -24,7 +25,7 @@ class Environment(tk.Tk,object):
         self.initParam()
 
     def render(self):
-        # time.sleep(0.01)
+        # time.sleep(0.5)
         if(self._visualize):
             for i in range(4):
                 self.var[i].set( '{}: {}{}\n'.format(i,self.handStack[i],self.fuluStack[i]) )
@@ -44,11 +45,11 @@ class Environment(tk.Tk,object):
         self.button.pack()
 
 
-    def newgame(self,SEED = None):
-        random.seed(SEED)
+    def newgame(self):
         self.initParam()
         self.initWind()
         self.sendTile()
+        # self.SEED = SEED
         return self
 
     def initParam(self):
@@ -67,12 +68,11 @@ class Environment(tk.Tk,object):
         # 庄家
         self.qinjia = 0
 
-
     def resetParam(self):
         ''' 重开发牌
         '''
         # 玩家手牌
-        self.handStack = [[],[],[],[]]        
+        self.handStack = [[],[],[],[]]
         # 牌河
         self.riverStack = [[],[],[],[]]
         # 鸣牌区域
@@ -140,10 +140,12 @@ class Environment(tk.Tk,object):
         '''
         self.pp += 1
         print(['东','南','西','北'][self.changfeng]+str(self.qinjia+1)+'局')
-        # print(' '.join(map(lambda x: 'p'+str(x)+':'+['东','南','西','北'][x], self.playerWind)))
+        #print(' '.join(map(lambda x: 'p'+str(x)+':'+['东','南','西','北'][x], self.playerWind)))
         # 重置参数
         self.resetParam()
-        #print(''.join(self.yama))
+        # 固定发牌
+        self.yama = self.ym
+        # print(''.join(self.yama))
         # 摸4轮牌
         for t in range(4):
             # 4个玩家按照自风依次
@@ -269,6 +271,7 @@ class Environment(tk.Tk,object):
         '''
         # print('msg: {}\n'.format(action), end='')
         self.msgList = [None,None,None,None]
+        tempReward = [0,0,0,0]
         # 是否终庄
         if self.endSection:
             if min(self.score) < 0:
@@ -324,6 +327,20 @@ class Environment(tk.Tk,object):
             # 正常发牌
             self.sendTile()
         elif action['type'] == 'qiepai':
+            # 切牌后向听数减少则reward=1
+            pid = action['from']
+            tile = action['tile']
+            xiangting = self.fulu_xiangting(self.handStack[pid],self.fuluStack[pid],pid)
+            dd = copy.copy(self.handStack[pid])
+            try:
+                dd.remove(tile)
+            except:
+                print(dd,tile)
+                raise Exception('打牌错误')
+            new_xiangting = self.fulu_xiangting(dd,self.fuluStack[pid],pid)
+            # print('\r',pid,tile,xiangting,new_xiangting)
+            if(new_xiangting <= xiangting):                
+                tempReward[pid] = 1
             # 切牌后判定他家副露
             self.allow_fulu(action)
         elif action['type'] == 'chipenggang':
@@ -339,7 +356,7 @@ class Environment(tk.Tk,object):
             # cancel
             pass
 
-        return self, [0,0,0,0], False
+        return self, tempReward, False
 
     def Liuju(self):
         # 4风连打
@@ -388,7 +405,7 @@ class Environment(tk.Tk,object):
                     else:
                         self.realfenpei[i] = -3000 / (4 - tingSum)
                     self.score[i] += self.realfenpei[i]
-            print('荒牌流局',self.realfenpei,self.lianzhuang)
+            print('\n荒牌流局',self.realfenpei,self.lianzhuang)
             # for i in range(4):
             #     print('手牌{}: {}{}'.format(i,self.handStack[i],self.fuluStack[i]))
             self.endSection = True
@@ -711,9 +728,9 @@ class Environment(tk.Tk,object):
         ptres = PtJudger.GetFen(hand,self.fuluStack[pid],tile,param)
         handstr = PaiMaker.GetSortPai(self.handStack[pid])
         print(pid,'胡了',handstr,tile,self.fuluStack[pid])
-        print('宝牌:{} 里宝:{}'.format(self.bao, self.libao))
+        print(param)
+        # print('宝牌:{} 里宝:{}'.format(self.bao, self.libao))
         if( not 'hupai' in ptres or ptres['hupai'] == None):
-            print(param)
             raise Exception('无役和了')
         print(ptres['hupai'])
         print('{}符{}番 {}'.format(ptres['fu'],ptres['fanshu'],ptres['defen']))
@@ -729,6 +746,106 @@ class Environment(tk.Tk,object):
         # 连庄判定
         if(self.playerWind[pid] == 0):
             self.lianzhuang = True
+
+    
+    def fulu_xiangting(self,hand,fulu,pid):
+        shoupai = PaiMaker.GetCount(hand)
+        # 选择向听数最小的
+        menqing = self.xiangting_menqing(shoupai,fulu)
+        fanpai = self.xiangting_fanpai(shoupai,fulu,self.changfeng+1,self.playerWind[pid]+1)
+        duanyao = self.xiangting_duanyao(shoupai,fulu)
+        duidui = self.xiangting_duidui(shoupai,fulu)
+        yisem = self.xiangting_yise(shoupai,fulu,'m')
+        yisep = self.xiangting_yise(shoupai,fulu,'p')
+        yises = self.xiangting_yise(shoupai,fulu,'s')
+        # print({"鸣牌":fulu,"门清":menqing,"役牌":fanpai,"断幺九":duanyao,"对对":duidui,"m清/混一色":yisem,"p清/混一色":yisep,"s清/混一色":yises});
+        return min(menqing,fanpai,duanyao,duidui,yisem,yisep,yises)
+
+    def xiangting_menqing(self,shoupai,fulu):
+        ''' 向听数-门清
+        '''
+        # 有副露则无穷大
+        if  len(list(filter(lambda m: re.search(r'[\-\+\=]',m), fulu))) > 0:
+            return 999
+        # 利用一般思路
+        return TingJudger.xiangting(shoupai,fulu)
+
+    def xiangting_fanpai(self,shoupai,fulu,changfeng,zifeng):
+        ''' 向听数-役牌
+        '''
+        n_fanpai = 0
+        back = None
+        # 自风与场风 三元牌
+        for n in [changfeng, zifeng, 5, 6, 7]:
+            if shoupai['z'][n] >= 3:
+                n_fanpai += 1
+            # 存在可以碰的役牌
+            elif (shoupai['z'][n] == 2):
+                back = n
+            # 已经副露的牌
+            for m in fulu:
+                if (m[0] == 'z' and m[1] == n):
+                    n_fanpai += 1
+        if n_fanpai > 0:
+            return TingJudger.xiangting(shoupai, fulu)
+        if back != None:
+            # 存在碰可能
+            new_shoupai = copy.copy(shoupai)
+            new_shoupai['z'][back] = 0
+            new_fulu = copy.copy(fulu)
+            # 假作一副刻子
+            new_fulu.append('z' + str(back)*3 + '=')
+            return TingJudger.xiangting(new_shoupai,new_fulu) + 1
+        return 999
+
+    def xiangting_duanyao(self,shoupai,fulu):
+        ''' 向听数-断19
+        '''
+        # 副露存在幺九牌
+        if len(list(filter(lambda m: re.search(r'^z|[19]',m),fulu)))>0:
+            return 999
+        new_shoupai = copy.copy(shoupai)
+        # 去掉手牌里的19和字牌
+        for ch in ['m', 'p', 's']:
+            for n in [1, 9]:
+                new_shoupai[ch][n] = 0
+        new_shoupai['z'] = [0, 0, 0, 0, 0, 0, 0, 0]
+        return TingJudger.xiangting(new_shoupai,fulu)
+
+    def xiangting_duidui(self,shoupai,fulu):
+        ''' 向听数-对对胡
+        '''
+        # 副露有顺子
+        if len(list(filter( lambda m: re.search(r'^[mpsz](\d)\1\1',m) == None,fulu))) > 0:
+            return 999
+        # 刻子和对子数
+        n_kezi = len(fulu)
+        n_duizi = 0
+        for ch in shoupai:
+            bingpai = shoupai[ch]
+            for n in range(1,len(bingpai)):
+                if (bingpai[n] >= 3):
+                    n_kezi += 1
+                if (bingpai[n] == 2):
+                    n_duizi += 1
+        if (n_kezi + n_duizi > 5):
+            n_duizi = 5 - n_kezi
+        # 搭子过多修正
+        return 8 - n_kezi * 2 - n_duizi
+
+    def xiangting_yise(self,shoupai,fulu,sort):
+        ''' 清混一色
+        '''
+        # 副露里有sort以外的花色
+        regexp = r'^[^z' + sort + r']'
+        if len(list(filter(lambda m: re.search(regexp,m), fulu))) > 0:
+            return 999
+        # 复制手牌 sort以外的花色去掉
+        new_shoupai = PaiMaker.CopyCount(shoupai)
+        for ch in ['m', 'p', 's']:
+            if (ch != sort):
+                new_shoupai[ch] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        return TingJudger.xiangting(new_shoupai,fulu)
 
     def getActions(self):
         ''' possible for player
