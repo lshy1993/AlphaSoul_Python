@@ -4,6 +4,7 @@ import pandas as pd
 import tensorflow.compat.v1 as tf
 import os
 # import Rule
+
 ROOT_PATH = 'E:/MAJ/pandas_obj.zip'
 
 np.random.seed(1)

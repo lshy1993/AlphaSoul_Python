@@ -5,7 +5,7 @@ import pandas as pd
 import os
 import re
 # import math
-from tool import PaiMaker
+# from tool import PaiMaker
 
 ''' 天凤牌谱解析
 '''
@@ -46,7 +46,7 @@ class State():
         return p
 
     def codeTile(self,p):
-        return hai.index(p)
+        return hai.index(p)+1
     
     def getYaku(self,id):
         return [
@@ -137,8 +137,6 @@ class State():
         self.step += 1
 
     def saveState(self,pid,action):
-        if action == 0:
-            raise Exception()
         ''' 按照谁的视角保存 pid action
         '''
         # 186*1 矩阵
@@ -227,13 +225,16 @@ class State():
         # print(self.handStack[who])
         # 保存当前state 和 action
         try:
-            act = self.handStack[who].index(p)
+            act = self.handStack[who].index(p) + 1
         except:
-            print(tag,p,' '.join(PaiMaker.GetSortPai(self.handStack[who])))
+            print(tag,p,' '.join(self.handStack[who]))
             raise Exception()
         if(self.lizhiflag[who]):
             act += 14
         self.saveState(who,act)
+        if act == 0:
+            print(p,self.lizhiflag[who])
+            raise Exception('action=0')
         # hand_s = PaiMaker.GetSortPai(self.handStack[who])
         # print( '{}p 切牌: {} {} {} {}'.format(who, p, ''.join(hand_s), ' '.join(self.fuluStack[who]), self.lizhiflag[who]) )
 
@@ -293,6 +294,8 @@ class State():
             elif(maxp == 0):
                 act += 2
             self.saveState(who,act)
+            if(act == 0):
+                raise Exception('act=0')
             # print('吃',fulu,act)
             # 移除手牌
             try:
@@ -429,7 +432,7 @@ class State():
                 fulu_s += fulu[i][0]
             fulu_s += ['','+','=','-'][pid]
             self.fuluStack[who].append(fulu_s)
-            hand_s = PaiMaker.GetSortPai(self.handStack[who])
+            # hand_s = PaiMaker.GetSortPai(self.handStack[who])
             # print("{}p 杠: {} {}".format(who,''.join(hand_s),self.fuluStack[who]))
 
 

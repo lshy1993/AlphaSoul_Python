@@ -50,7 +50,7 @@ def loadData_o():
     return data,label
 
 def loadData(N=None):
-    data = pd.DataFrame(columns=range(186), dtype=np.float)
+    data = pd.DataFrame(columns=range(187), dtype=np.float)
     n = 0
     for file in os.listdir(CSV_PATH):
         n += 1
@@ -61,7 +61,7 @@ def loadData(N=None):
         data = data.append(raw_data,ignore_index=True)
     return data
 
-data = loadData(500)
+data = loadData(100)
 print(len(data))
 train = data.sample(frac=0.8)
 print( 'train:{}'.format(len(train)) )
@@ -78,11 +78,13 @@ test_labels = test.iloc[:,186:]
 model = tf.keras.models.Sequential([
     tf.keras.layers.Flatten(input_shape=(186,)),
     tf.keras.layers.Dense(128, activation='relu'),
-    # tf.keras.layers.Dropout(0.2),
+    tf.keras.layers.Dropout(0.2),
     tf.keras.layers.Dense(128, activation='relu'),
-    # tf.keras.layers.Dropout(0.2),
+    tf.keras.layers.Dropout(0.2),
     tf.keras.layers.Dense(128, activation='relu'),
-    tf.keras.layers.Dense(41, activation='softmax')
+    tf.keras.layers.Dropout(0.2),    
+    tf.keras.layers.Dense(128, activation='relu'),
+    tf.keras.layers.Dense(42, activation='softmax')
 ])
 
 model.compile(optimizer='adam',
