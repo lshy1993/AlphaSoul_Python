@@ -4,10 +4,13 @@ from Agent import QLearningTable
 from tool import PaiMaker
 import re
 import sys
+import time
+import random
 
 def update():
-    for episode in range(100):
+    for episode in range(5):
         print('episode{} start\n'.format(episode))
+        start = time.time()
         # initial observation
         observation = env.newgame()
         # 记录开局后所有state
@@ -26,7 +29,7 @@ def update():
                 if act == None or len(act) == 0:
                     continue
                 res = Plist(act,observation,k)
-                code = coding(observation,k)
+                code = PaiMaker.coding(observation,k)
                 # RL choose action based on observation
                 action[k] = RL.choose_action(code,list(res.keys()))
                 # 记录state与action
@@ -42,7 +45,7 @@ def update():
             for k,act in enumerate(action):
                 if act == None:
                     continue
-                code_ = coding(observation_,k)
+                code_ = PaiMaker.coding(observation_,k)
                 # RL learn from this transition
                 RL.learn(code, act, reward[k], code_)
 
@@ -54,25 +57,27 @@ def update():
                 for i in range(4):
                     if reward[i] > 0:
                         st = statelist[i]
+                        print(st)
                         for k in range(len(st)):
                             state_old = st[k]['state']
                             if(k+1 == len(st)):
                                 state_next = 'terminal'
                             else:
                                 state_next = st[k+1]['state']
-                            act = st[k+1]['action']
-                            RL.learn(state_old,act,reward[i]/1000,state_next)
+                            act = st[k]['action']
+                            RL.learn(state_old,act,reward[i],state_next)
                 # 清空
                 statelist = [[],[],[],[]]
+                break
             
             # break while loop when end of this episode
             if done:
                 break
-
-        print('episode{} end, {} game played'.format(episode,env.pp))
+        end = time.time()
+        print('episode{} end, time:{:.2f}, total {} game played'.format(episode,end-start,env.pp))
         # 5个episode保存qtable
         #if episode % 5 == 0:
-        RL.save()
+        #RL.save()
 
     print('train end')
     # env.destroy()
@@ -190,26 +195,13 @@ def msgBuilder(action,k,opt):
         pass
     return dic
 
-def coding(env,k):
-    hand = env.handStack[k]
-    fulu = env.fuluStack[k]
-    code = ""
-    count = PaiMaker.GetCount(hand)
-    for p in count:
-        ll = count[p]
-        for n in range(1,len(ll)):
-            if ll[n] > 0:
-                code += str(ll[n])+str(p)+str(n)
-    code += '/'+''.join(fulu)
-    return code
-
 if __name__ == "__main__":
     vis = False
     print(len(sys.argv))
     if len(sys.argv) > 1:
         # vis = True
         pass
-    env = Environment(rule=Rule(),visualize=vis)
+    env = Environment(rule=Rule(),yama=PaiMaker.GeneratePai(1))
     RL = QLearningTable(actions=list(range(41)))
     update()
 

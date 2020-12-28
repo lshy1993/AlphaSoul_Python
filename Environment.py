@@ -2,7 +2,7 @@ import random
 import time
 import copy
 import re
-import tkinter as tk
+# import tkinter as tk
 from tool import PaiMaker
 from tool import PtJudger
 from tool import TingJudger
@@ -10,39 +10,41 @@ from tool import MianziMaker
 
 MAX_Wind = 1 # 东风局0 南风局1
 
-class Environment(tk.Tk,object):
+class Environment(object):
 
-    def __init__(self, rule, visualize=False):
+    def __init__(self, rule, visualize=False, yama=None):
         super().__init__()
         self._rule = rule
         self.msgList = [None,None,None,None]
-        self.ym = PaiMaker.GeneratePai()
+        self.ym = yama
         self.pp = 0
         self._visualize = visualize
         if(self._visualize):
-            self.initwindow()
+            pass
+            # self.initwindow()
         
         self.initParam()
 
     def render(self):
-        # time.sleep(0.5)
-        if(self._visualize):
-            for i in range(4):
-                self.var[i].set( '{}: {}{}\n'.format(i,self.handStack[i],self.fuluStack[i]) )
-            self.okVar.set(0)
-            self.button.wait_variable(self.okVar)
-            self.update()
+        pass
+        #time.sleep(0.05)
+    #     if(self._visualize):
+    #         for i in range(4):
+    #             self.var[i].set( '{}: {}{}\n'.format(i,self.handStack[i],self.fuluStack[i]) )
+    #         self.okVar.set(0)
+    #         self.button.wait_variable(self.okVar)
+    #         self.update()
 
-    def initwindow(self):
-        self.title('maj')
-        self.geometry('{0}x{1}'.format(640,480))
-        self.var = [tk.StringVar() for _ in range(4)]
-        for i in range(4):
-            l = tk.Label(self, textvariable=self.var[i], font=('Arial', 12), width=640, height=2)
-            l.pack()
-        self.okVar = tk.IntVar()
-        self.button = tk.Button(self, text='next', font=('Arial', 12), width=10, height=1, command=lambda: self.okVar.set(1))
-        self.button.pack()
+    # def initwindow(self):
+    #     self.title('maj')
+    #     self.geometry('{0}x{1}'.format(640,480))
+    #     self.var = [tk.StringVar() for _ in range(4)]
+    #     for i in range(4):
+    #         l = tk.Label(self, textvariable=self.var[i], font=('Arial', 12), width=640, height=2)
+    #         l.pack()
+    #     self.okVar = tk.IntVar()
+    #     self.button = tk.Button(self, text='next', font=('Arial', 12), width=10, height=1, command=lambda: self.okVar.set(1))
+    #     self.button.pack()
 
 
     def newgame(self):
@@ -144,8 +146,9 @@ class Environment(tk.Tk,object):
         # 重置参数
         self.resetParam()
         # 固定发牌
-        self.yama = self.ym
-        # print(''.join(self.yama))
+        if(self.ym != None):
+            self.yama = self.ym
+            print(''.join(self.yama))
         # 摸4轮牌
         for t in range(4):
             # 4个玩家按照自风依次
@@ -279,11 +282,11 @@ class Environment(tk.Tk,object):
                 print('有人被飞')
                 self.endGame = True
             elif self.changfeng > MAX_Wind:
-                print('{}入判定'.format('东南西北'[MAX_Wind+1]))
+                # print('{}入判定'.format('东南西北'[MAX_Wind+1]))
                 # 西入时，只要有任何人超过30000 或到西4局 即结束
                 self.endGame = self.qinjia == 3 or max(self.score) >= 30000
             elif self.changfeng == MAX_Wind and self.qinjia == 3:
-                print('{}4判定'.format('东南西北'[MAX_Wind]))
+                # print('{}4判定'.format('东南西北'[MAX_Wind]))
                 # 南4判定
                 if(self.lianzhuang):
                     pid = 0
@@ -338,13 +341,19 @@ class Environment(tk.Tk,object):
                 print(dd,tile)
                 raise Exception('打牌错误')
             new_xiangting = self.fulu_xiangting(dd,self.fuluStack[pid],pid)
-            # print('\r',pid,tile,xiangting,new_xiangting)
-            if(new_xiangting <= xiangting):                
+            # print('\np{} tile:{} xt:{}->{}'.format(pid,tile,xiangting,new_xiangting))
+            if(new_xiangting == 999):
+                tempReward[pid] = -10
+            elif(new_xiangting < xiangting):
                 tempReward[pid] = 1
+            elif(new_xiangting > xiangting):
+                tempReward[pid] = -5
             # 切牌后判定他家副露
             self.allow_fulu(action)
         elif action['type'] == 'chipenggang':
             # 副露
+            pid = action['from']
+            tempReward[pid] = -5
             self.chipenggang(action)
         elif action['type'] == 'angangjiagang':
             # 杠类
@@ -386,28 +395,29 @@ class Environment(tk.Tk,object):
         if (self.yamaPos == self.yamaLast - 14):
             xiangting = [0,0,0,0]
             tingpai = [[],[],[],[]]
+            self.realfenpei = [0,0,0,0]
             for i in range(4):
                 pcount = PaiMaker.GetCount(self.handStack[i])
                 xiangting[i] = TingJudger.xiangting(pcount,self.fuluStack[i])
                 if(xiangting[i] == 0):
                     tingpai[i] = TingJudger.tingpai(pcount,self.fuluStack[i])
-                # print(i,':',xiangting,'向听');
                 # 庄家是否听牌连庄
                 if(self.playerWind[i] == 0):
                     self.lianzhuang = xiangting[i] == 0
+                    if(self.lianzhuang):
+                        self.realfenpei[i] = 500
             # 点数更新(id顺)
-            tingSum = sum(xiangting)
-            self.realfenpei = [0,0,0,0]
+            tingSum = len(list(filter(lambda t: t==0,xiangting)))
             if (tingSum > 0 and tingSum < 4):
                 for i in range(4):
                     if xiangting[i] == 0:
-                        self.realfenpei[i] = 3000 / tingSum
+                        self.realfenpei[i] += 3000 / tingSum
                     else:
-                        self.realfenpei[i] = -3000 / (4 - tingSum)
+                        self.realfenpei[i] += -3000 / (4 - tingSum)
                     self.score[i] += self.realfenpei[i]
-            print('\n荒牌流局',self.realfenpei,self.lianzhuang)
-            # for i in range(4):
-            #     print('手牌{}: {}{}'.format(i,self.handStack[i],self.fuluStack[i]))
+            print('\n荒牌流局 {} 连庄{}'.format(self.realfenpei,self.lianzhuang))
+            for i in range(4):
+                print('p{}:{}向听 手牌{}{}'.format(i,xiangting[i],PaiMaker.GetSortPai(self.handStack[i]),self.fuluStack[i]))
             self.endSection = True
             return True
         
@@ -841,7 +851,7 @@ class Environment(tk.Tk,object):
         if len(list(filter(lambda m: re.search(regexp,m), fulu))) > 0:
             return 999
         # 复制手牌 sort以外的花色去掉
-        new_shoupai = PaiMaker.CopyCount(shoupai)
+        new_shoupai = copy.copy(shoupai)
         for ch in ['m', 'p', 's']:
             if (ch != sort):
                 new_shoupai[ch] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]

@@ -1,66 +1,49 @@
-import random
-import Rule
-import Environment
-from tool import PaiMaker
-from tool import MianziMaker
-from tool import RonJudger
-from tool import TingJudger
-from tool import PtJudger
-import re
+from Environment import Environment
+from Rule import Rule
+from DQN import DeepQNetwork
 
-SEED = 2019
 def main():
-    random.seed(SEED)
+    step = 0
+    for episode in range(300):
+        # initial observation
+        observation = env.newgame()
 
-    # 牌山生成
-    # yama = tool.PaiMaker.GeneratePai()
-    # print(yama)
+        while True:
+            # fresh env
+            env.render()
 
-    
-    #print(re.fullmatch(r'国','国世无双国'))
+            # RL choose action based on observation
+            action = RL.choose_action(observation)
 
-    print(re.match(r"[\-\+\=]", '111='))
-    print(re.findall(r"[\-\+\=]", '111='))
+            # RL take action and get next observation and reward
+            observation_, reward, done = env.step(action)
 
+            RL.store_transition(observation, action, reward, observation_)
 
-    handStack = ["1m", "1m", "2m", "2m", "3m", "3m", "4m", "4m", "5m", "5m", "6m", "6m", "7m" ]
-    #handStack = [ "1m", "9m", "1p", "9p", "1s", "9s", "1z", "2z", "3z", "4z", "5z", "6z", "7z" ]
-    #handStack = [ "1m", "1m", "9p", "9p" ]
-    #fuluStack = [ "z555-", "z666-", "z777=" ]
-    fuluStack = []
-    mopai = "1m"
-    handStack.append(mopai)
-    paiCount = PaiMaker.GetCount(handStack)
+            if (step > 200) and (step % 5 == 0):
+                RL.learn()
 
-    #print(RonJudger.MianziDevide(paiCount, fuluStack))
-    #print(TingJudger.tingpai(paiCount,fuluStack))
+            # swap observation
+            observation = observation_
 
-    #mianzi = MianziMaker.GetFuluMianzi(handStack,fuluStack,mopai+'-')
-    #print(mianzi)
-    #pcount = PaiMaker.GetCount(handStack)
+            # break while loop when end of this episode
+            if done:
+                break
+            step += 1
 
-    #print(RonJudger.Ron(handStack,mopai,fuluStack))
-
-    param = {
-        'zhuangfeng': 0,
-        'menfeng': 0,
-        'baopai': ['1z'],
-        'fubaopai': [],
-        'changbang': 0,
-        'lizhibang': 0,
-        'lizhi':      0,
-        'yifa':       0,
-        'qianggang':  False,
-        'lingshang':  False,
-        'haidi':      0,
-        'tianhu':     0
-    }
-    ptres = PtJudger.GetFen(handStack,fuluStack,mopai+'-',param)
-    print(ptres)
-    
-
-
-
+    # end of game
+    print('game over')
+    # env.destroy()
 
 if __name__ == "__main__":
+    env = Environment(rule=Rule())
+    RL = DeepQNetwork(list(range(41)), 2,
+                      learning_rate=0.01,
+                      reward_decay=0.9,
+                      e_greedy=0.9,
+                      replace_target_iter=200,
+                      memory_size=2000,
+                      # output_graph=True
+                      )
     main()
+    RL.plot_cost()

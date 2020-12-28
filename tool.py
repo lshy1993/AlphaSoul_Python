@@ -146,10 +146,12 @@ class MianziMaker:
 
 class PaiMaker:
     # 生成随机牌山
-    def GeneratePai():
+    def GeneratePai(SEED=None):
         resArr = []
         for i in range(136):
             resArr.append(i)
+        if(SEED != None):
+            random.seed(SEED)
         random.shuffle(resArr)
         # 生成牌
         resList = []
@@ -198,8 +200,8 @@ class PaiMaker:
     GetCountOff = staticmethod(GetCountOff)
 
     # 复制牌统计
-    def CopyCount(pcount):
-        return copy.deepcopy(pcount)
+    #def CopyCount(pcount):
+        # return copy.deepcopy(pcount)
         # newCount = {
         #     m: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         #     p: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -257,7 +259,7 @@ class PaiMaker:
     GetBao = staticmethod(GetBao)
         
     def GetSortPai(hand):
-        nh = copy.deepcopy(hand)
+        # nh = copy.deepcopy(hand)
         def cmp(a,b):
             tv = {"m":0,"p":1,"s":2,"z":3}
             a = a.replace('0','5')
@@ -265,9 +267,35 @@ class PaiMaker:
             if(a[1] == b[1]):
                 return int(a[0]) - int(b[0])
             return tv[a[1]] - tv[b[1]]
-        return sorted(nh,key=cmp_to_key(cmp))
+        return sorted(hand,key=cmp_to_key(cmp))
     GetSortPai = staticmethod(GetSortPai)
 
+    def coding(env,k):
+        hand = env.handStack[k]
+        fulu = env.fuluStack[k]
+        code = ""
+        count = PaiMaker.GetCount(hand)
+        for p in count:
+            ll = count[p]
+            for n in range(1,len(ll)):
+                if ll[n] > 0:
+                    code += str(ll[n])+str(p)+str(n)
+        def cmp(a,b):
+            tv = {"m":0,"p":1,"s":2,"z":3}
+            a = a.replace('0','5')
+            a = re.sub(r'[\+\-\=\_]','',a)
+            b = b.replace('0','5')
+            b = re.sub(r'[\+\-\=\_]','',b)
+            if(a[0] == b[0]):
+                if(a[1] == a[1]):
+                    return int(a[2]) - int(b[2])
+                return int(a[1]) - int(b[1])
+            return tv[a[0]] - tv[b[0]]
+
+        fulu = sorted(fulu,key=cmp_to_key(cmp))
+        code += '/'+''.join(fulu)
+        return code
+    coding = staticmethod(coding)
 
 class TingJudger:
     def _xiangting(m, d, g, j):
